@@ -1,0 +1,664 @@
+
+
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IKEA France — Last-Mile Delivery Performance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        ikea: {
+                            blue: '#0058A3',
+                            yellow: '#FFDB00',
+                            dark: '#111111',
+                            gray: '#F5F5F5',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        body {
+            background-color: #F5F5F5;
+            color: #111111;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        
+        .dark body {
+            background-color: #0A0A0A;
+            color: #E5E5E5;
+        }
+        
+        .card {
+            background: #FFFFFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .dark .card {
+            background: #141414;
+            border-color: #262626;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .dark .card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .kpi-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #0058A3;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .kpi-card:hover::before {
+            opacity: 1;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #E5E5E5;
+            overflow: hidden;
+        }
+        
+        .dark .progress-bar {
+            background: #262626;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-green { background: #10B981; }
+        .status-orange { background: #F59E0B; }
+        .status-red { background: #EF4444; }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-green {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .dark .badge-green {
+            background: #064E3B;
+            color: #6EE7B7;
+        }
+        
+        .badge-orange {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+        
+        .dark .badge-orange {
+            background: #78350F;
+            color: #FCD34D;
+        }
+        
+        .badge-red {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        
+        .dark .badge-red {
+            background: #7F1D1D;
+            color: #FCA5A5;
+        }
+        
+        .table-row {
+            transition: background 0.15s ease;
+        }
+        
+        .table-row:hover {
+            background: #F9FAFB;
+        }
+        
+        .dark .table-row:hover {
+            background: #1A1A1A;
+        }
+        
+        .alert-item {
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .alert-item:hover {
+            transform: translateX(2px);
+        }
+        
+        .alert-critical {
+            border-left-color: #EF4444;
+        }
+        
+        .alert-warning {
+            border-left-color: #F59E0B;
+        }
+        
+        .alert-info {
+            border-left-color: #0058A3;
+        }
+        
+        .btn-primary {
+            background: #0058A3;
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            background: #004a8a;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #E5E5E5;
+            color: #111;
+            transition: all 0.2s ease;
+        }
+        
+        .dark .btn-secondary {
+            border-color: #404040;
+            color: #E5E5E5;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #0058A3;
+            color: #0058A3;
+        }
+        
+        .dark .btn-secondary:hover {
+            border-color: #0058A3;
+            color: #60A5FA;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: #E5E5E5;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .dark .toggle-switch {
+            background: #404040;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch.active::after {
+            transform: translateX(20px);
+        }
+        
+        .toggle-switch.active {
+            background: #0058A3;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+        
+        .region-item {
+            transition: all 0.2s ease;
+        }
+        
+        .region-item:hover {
+            transform: translateX(4px);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .trend-up { color: #10B981; }
+        .trend-down { color: #EF4444; }
+        .dark .trend-up { color: #6EE7B7; }
+        .dark .trend-down { color: #FCA5A5; }
+        
+        .separator {
+            height: 1px;
+            background: #E5E5E5;
+        }
+        
+        .dark .separator {
+            background: #262626;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 card border-b-0 rounded-none" style="border-bottom: 1px solid #E5E5E5;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-ikea-blue flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold tracking-tight">IKEA France</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Last-Mile Delivery Performance</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <button onclick="exportCSV()" class="btn-secondary px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span class="hidden sm:inline">CSV</span>
+                    </button>
+                    <button onclick="exportPDF()" class="btn-secondary px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="hidden sm:inline">PDF</span>
+                    </button>
+                    <div class="separator w-px h-6 mx-1"></div>
+                    <button onclick="toggleDarkMode()" class="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                        <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                        <span class="hidden sm:inline">Dark</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="card kpi-card p-5 animate-fade-in" style="animation-delay: 0ms;">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">On-Time Delivery</span>
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-ikea-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold">94.2%</span>
+                    <span class="text-xs font-medium trend-up flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                        1.2%
+                    </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">vs last month</p>
+            </div>
+
+            <div class="card kpi-card p-5 animate-fade-in" style="animation-delay: 50ms;">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Daily Deliveries</span>
+                    <div class="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold">12,847</span>
+                    <span class="text-xs font-medium trend-up flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                        3.8%
+                    </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">avg this week</p>
+            </div>
+
+            <div class="card kpi-card p-5 animate-fade-in" style="animation-delay: 100ms;">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Incident Rate</span>
+                    <div class="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold">2.4%</span>
+                    <span class="text-xs font-medium trend-down flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                        </svg>
+                        0.6%
+                    </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">target: &lt;3%</p>
+            </div>
+
+            <div class="card kpi-card p-5 animate-fade-in" style="animation-delay: 150ms;">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">NPS Score</span>
+                    <div class="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold">72</span>
+                    <span class="text-xs font-medium trend-up flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                        4
+                    </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">industry avg: 45</p>
+            </div>
+
+            <div class="card kpi-card p-5 animate-fade-in" style="animation-delay: 200ms;">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Cost/Delivery</span>
+                    <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold">€24.50</span>
+                    <span class="text-xs font-medium trend-down flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                        </svg>
+                        €1.20
+                    </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">vs last month</p>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid lg:grid-cols-2 gap-6">
+            <!-- 30-Day Volume Trend -->
+            <div class="card p-6 animate-fade-in" style="animation-delay: 250ms;">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-sm font-semibold">30-Day Delivery Volume</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Daily completed deliveries</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-ikea-blue"></span>
+                        <span class="text-xs text-gray-500">Deliveries</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top 5 Providers -->
+            <div class="card p-6 animate-fade-in" style="animation-delay: 300ms;">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-sm font-semibold">Top 5 Providers Performance</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">On-time delivery rate by provider</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="providersChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regional Performance & Alerts -->
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Regional Performance -->
+            <div class="card p-6 lg:col-span-2 animate-fade-in" style="animation-delay: 350ms;">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-sm font-semibold">Regional Performance</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">On-time delivery rate by region</p>
+                    </div>
+                </div>
+                <div class="space-y-5">
+                    <div class="region-item">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                <span class="text-sm font-medium">Île-de-France</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-500">4,230 deliveries/day</span>
+                                <span class="text-sm font-bold text-green-600 dark:text-green-400">96%</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-green-500" style="width: 96%"></div>
+                        </div>
+                    </div>
+
+                    <div class="region-item">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                <span class="text-sm font-medium">Auvergne-Rhône-Alpes</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-500">2,180 deliveries/day</span>
+                                <span class="text-sm font-bold text-green-600 dark:text-green-400">94%</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-green-500" style="width: 94%"></div>
+                        </div>
+                    </div>
+
+                    <div class="region-item">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                <span class="text-sm font-medium">Nouvelle-Aquitaine</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-500">1,890 deliveries/day</span>
+                                <span class="text-sm font-bold text-green-600 dark:text-green-400">93%</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-green-500" style="width: 93%"></div>
+                        </div>
+                    </div>
+
+                    <div class="region-item">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                                <span class="text-sm font-medium">Provence-Alpes-Côte d'Azur</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-500">1,560 deliveries/day</span>
+                                <span class="text-sm font-bold text-yellow-600 dark:text-yellow-400">90%</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-yellow-500" style="width: 90%"></div>
+                        </div>
+                    </div>
+
+                    <div class="region-item">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                                <span class="text-sm font-medium">Bretagne</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-500">980 deliveries/day</span>
+                                <span class="text-sm font-bold text-red-600 dark:text-red-400">85%</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-red-500" style="width: 85%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div class="card p-6 animate-fade-in" style="animation-delay: 400ms;">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-sm font-semibold">Recent Alerts</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 24 hours</p>
+                    </div>
+                    <span class="badge badge-red">3 Active</span>
+                </div>
+                <div class="space-y-3">
+                    <div class="alert-item alert-critical p-4 rounded-lg bg-red-50 dark:bg-red-900/10">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-red-800 dark:text-red-200">Critical Delay Spike</p>
+                                <p class="text-xs text-red-600 dark:text-red-300 mt-1">Bretagne region showing 15% delay rate in last 6 hours</p>
+                                <p class="text-xs text-gray-400 mt-2">2 hours ago</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert-item alert-warning p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Provider Capacity Warning</p>
+                                <p class="text-xs text-yellow-700 dark:text-yellow-300 mt-1">Geodis reporting 92% fleet utilization</p>
+                                <p class="text-xs text-gray-400 mt-2">5 hours ago</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert-item alert-info p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-ikea-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-blue-800 dark:text-blue-200">Weather Advisory</p>
+                                <p class="text-xs text-blue-600 dark:text-blue-300 mt-1">Heavy rain expected in PACA region tomorrow</p>
+                                <p class="text-xs text-gray-400 mt-2">8 hours ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Providers Table -->
+        <div class="card overflow-hidden animate-fade-in" style="animation-delay: 450ms;">
+            <div class="p-6 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold">Provider Details</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">All active delivery partners</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" placeholder="Search providers..." class="px-3 py-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 bg-transparent focus:outline-none focus:border-ikea-blue w-48">
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-100 dark:border-gray-800">
+                            <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Provider</th>
+                            <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Region</th>
+                            <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deliveries/Day</th>
+                            <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delay Rate</th>
+                            <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">NPS</th>
+                            <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost/Delivery</th>
+                            <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Incidents</th>
+                            <th class="text-center px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+                        <tr class="table-row">
+                            <td class="px-6 py-4">
+                                <div class="
